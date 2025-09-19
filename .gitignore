@@ -1,0 +1,20 @@
+# Temporary files
+*.tmp
+*~
+.DS_Store
+
+# Output files from testing
+test_output.xml
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Log files
+*.log
+
+# Backup files
+*.bak
+*.backup
