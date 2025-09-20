@@ -5,8 +5,9 @@
   xmlns:w="http://www.cargowise.com/Schemas/Universal/2011/11"
   xmlns:a="http://www.tralix.com/cfd/40">
   <xsl:output method="xml" encoding="UTF-8" indent="yes"/>
+  <!-- Llave para agrupar cargos combinando código de cargo y código de impuesto -->
   <xsl:key name="ChargeCode" match="//w:PostingJournalCollection/w:PostingJournal"
-    use="w:ChargeCode/w:Code"/>
+    use="concat(w:ChargeCode/w:Code, '|', w:VATTaxID/w:TaxCode)"/>
   <xsl:key name="ServicioKey" match="//w:ShipmentCollection/w:Shipment/w:ContainerMode/w:Code"
     use="."/>
   <xsl:key name="MAWBKey"
@@ -19,6 +20,566 @@
     use="w:ContainerNumber"/>
   <xsl:key name="uniquePackagesCant" match="w:OuterPacks" use="."/>
   <xsl:key name="uniqueWeights" match="w:ManifestedWeight" use="."/>
+
+  <xsl:variable name="country-code-map">
+    <map>
+      <country code="AD" value="AND"/>
+      <country code="AE" value="ARE"/>
+      <country code="AF" value="AFG"/>
+      <country code="AG" value="ATG"/>
+      <country code="AI" value="AIA"/>
+      <country code="AL" value="ALB"/>
+      <country code="AM" value="ARM"/>
+      <country code="AO" value="AGO"/>
+      <country code="AQ" value="ATA"/>
+      <country code="AR" value="ARG"/>
+      <country code="AS" value="ASM"/>
+      <country code="AT" value="AUT"/>
+      <country code="AU" value="AUS"/>
+      <country code="AW" value="ABW"/>
+      <country code="AX" value="ALA"/>
+      <country code="AZ" value="AZE"/>
+      <country code="BA" value="BIH"/>
+      <country code="BB" value="BRB"/>
+      <country code="BD" value="BGD"/>
+      <country code="BE" value="BEL"/>
+      <country code="BF" value="BFA"/>
+      <country code="BG" value="BGR"/>
+      <country code="BH" value="BHR"/>
+      <country code="BI" value="BDI"/>
+      <country code="BJ" value="BEN"/>
+      <country code="BL" value="BLM"/>
+      <country code="BM" value="BMU"/>
+      <country code="BN" value="BRN"/>
+      <country code="BO" value="BOL"/>
+      <country code="BQ" value="BES"/>
+      <country code="BR" value="BRA"/>
+      <country code="BS" value="BHS"/>
+      <country code="BT" value="BTN"/>
+      <country code="BV" value="BVT"/>
+      <country code="BW" value="BWA"/>
+      <country code="BY" value="BLR"/>
+      <country code="BZ" value="BLZ"/>
+      <country code="CA" value="CAN"/>
+      <country code="CC" value="CCK"/>
+      <country code="CD" value="COD"/>
+      <country code="CF" value="CAF"/>
+      <country code="CG" value="COG"/>
+      <country code="CH" value="CHE"/>
+      <country code="CI" value="CIV"/>
+      <country code="CK" value="COK"/>
+      <country code="CL" value="CHL"/>
+      <country code="CM" value="CMR"/>
+      <country code="CN" value="CHN"/>
+      <country code="CO" value="COL"/>
+      <country code="CR" value="CRI"/>
+      <country code="CU" value="CUB"/>
+      <country code="CV" value="CPV"/>
+      <country code="CW" value="CUW"/>
+      <country code="CX" value="CXR"/>
+      <country code="CY" value="CYP"/>
+      <country code="CZ" value="CZE"/>
+      <country code="DE" value="DEU"/>
+      <country code="DJ" value="DJI"/>
+      <country code="DK" value="DNK"/>
+      <country code="DM" value="DMA"/>
+      <country code="DO" value="DOM"/>
+      <country code="DZ" value="DZA"/>
+      <country code="EC" value="ECU"/>
+      <country code="EE" value="EST"/>
+      <country code="EG" value="EGY"/>
+      <country code="EH" value="ESH"/>
+      <country code="ER" value="ERI"/>
+      <country code="ES" value="ESP"/>
+      <country code="ET" value="ETH"/>
+      <country code="FI" value="FIN"/>
+      <country code="FJ" value="FJI"/>
+      <country code="FK" value="FLK"/>
+      <country code="FM" value="FSM"/>
+      <country code="FO" value="FRO"/>
+      <country code="FR" value="FRA"/>
+      <country code="GA" value="GAB"/>
+      <country code="GB" value="GBR"/>
+      <country code="GD" value="GRD"/>
+      <country code="GE" value="GEO"/>
+      <country code="GF" value="GUF"/>
+      <country code="GG" value="GGY"/>
+      <country code="GH" value="GHA"/>
+      <country code="GI" value="GIB"/>
+      <country code="GL" value="GRL"/>
+      <country code="GM" value="GMB"/>
+      <country code="GN" value="GIN"/>
+      <country code="GP" value="GLP"/>
+      <country code="GQ" value="GNQ"/>
+      <country code="GR" value="GRC"/>
+      <country code="GS" value="SGS"/>
+      <country code="GT" value="GTM"/>
+      <country code="GU" value="GUM"/>
+      <country code="GW" value="GNB"/>
+      <country code="GY" value="GUY"/>
+      <country code="HK" value="HKG"/>
+      <country code="HM" value="HMD"/>
+      <country code="HN" value="HND"/>
+      <country code="HR" value="HRV"/>
+      <country code="HT" value="HTI"/>
+      <country code="HU" value="HUN"/>
+      <country code="ID" value="IDN"/>
+      <country code="IE" value="IRL"/>
+      <country code="IL" value="ISR"/>
+      <country code="IM" value="IMN"/>
+      <country code="IN" value="IND"/>
+      <country code="IO" value="IOT"/>
+      <country code="IQ" value="IRQ"/>
+      <country code="IR" value="IRN"/>
+      <country code="IS" value="ISL"/>
+      <country code="IT" value="ITA"/>
+      <country code="JE" value="JEY"/>
+      <country code="JM" value="JAM"/>
+      <country code="JO" value="JOR"/>
+      <country code="JP" value="JPN"/>
+      <country code="KE" value="KEN"/>
+      <country code="KG" value="KGZ"/>
+      <country code="KH" value="KHM"/>
+      <country code="KI" value="KIR"/>
+      <country code="KM" value="COM"/>
+      <country code="KN" value="KNA"/>
+      <country code="KP" value="PRK"/>
+      <country code="KR" value="KOR"/>
+      <country code="KW" value="KWT"/>
+      <country code="KY" value="CYM"/>
+      <country code="KZ" value="KAZ"/>
+      <country code="LA" value="LAO"/>
+      <country code="LB" value="LBN"/>
+      <country code="LC" value="LCA"/>
+      <country code="LI" value="LIE"/>
+      <country code="LK" value="LKA"/>
+      <country code="LR" value="LBR"/>
+      <country code="LS" value="LSO"/>
+      <country code="LT" value="LTU"/>
+      <country code="LU" value="LUX"/>
+      <country code="LV" value="LVA"/>
+      <country code="LY" value="LBY"/>
+      <country code="MA" value="MAR"/>
+      <country code="MC" value="MCO"/>
+      <country code="MD" value="MDA"/>
+      <country code="ME" value="MNE"/>
+      <country code="MF" value="MAF"/>
+      <country code="MG" value="MDG"/>
+      <country code="MH" value="MHL"/>
+      <country code="MK" value="MKD"/>
+      <country code="ML" value="MLI"/>
+      <country code="MM" value="MMR"/>
+      <country code="MN" value="MNG"/>
+      <country code="MO" value="MAC"/>
+      <country code="MP" value="MNP"/>
+      <country code="MQ" value="MTQ"/>
+      <country code="MR" value="MRT"/>
+      <country code="MS" value="MSR"/>
+      <country code="MT" value="MLT"/>
+      <country code="MU" value="MUS"/>
+      <country code="MV" value="MDV"/>
+      <country code="MW" value="MWI"/>
+      <country code="MX" value="MEX"/>
+      <country code="MY" value="MYS"/>
+      <country code="MZ" value="MOZ"/>
+      <country code="NA" value="NAM"/>
+      <country code="NC" value="NCL"/>
+      <country code="NE" value="NER"/>
+      <country code="NF" value="NFK"/>
+      <country code="NG" value="NGA"/>
+      <country code="NI" value="NIC"/>
+      <country code="NL" value="NLD"/>
+      <country code="NO" value="NOR"/>
+      <country code="NP" value="NPL"/>
+      <country code="NR" value="NRU"/>
+      <country code="NU" value="NIU"/>
+      <country code="NZ" value="NZL"/>
+      <country code="OM" value="OMN"/>
+      <country code="PA" value="PAN"/>
+      <country code="PE" value="PER"/>
+      <country code="PF" value="PYF"/>
+      <country code="PG" value="PNG"/>
+      <country code="PH" value="PHL"/>
+      <country code="PK" value="PAK"/>
+      <country code="PL" value="POL"/>
+      <country code="PM" value="SPM"/>
+      <country code="PN" value="PCN"/>
+      <country code="PR" value="PRI"/>
+      <country code="PS" value="PSE"/>
+      <country code="PT" value="PRT"/>
+      <country code="PW" value="PLW"/>
+      <country code="PY" value="PRY"/>
+      <country code="QA" value="QAT"/>
+      <country code="RE" value="REU"/>
+      <country code="RO" value="ROU"/>
+      <country code="RS" value="SRB"/>
+      <country code="RU" value="RUS"/>
+      <country code="RW" value="RWA"/>
+      <country code="SA" value="SAU"/>
+      <country code="SB" value="SLB"/>
+      <country code="SC" value="SYC"/>
+      <country code="SD" value="SDN"/>
+      <country code="SE" value="SWE"/>
+      <country code="SG" value="SGP"/>
+      <country code="SH" value="SHN"/>
+      <country code="SI" value="SVN"/>
+      <country code="SJ" value="SJM"/>
+      <country code="SK" value="SVK"/>
+      <country code="SL" value="SLE"/>
+      <country code="SM" value="SMR"/>
+      <country code="SN" value="SEN"/>
+      <country code="SO" value="SOM"/>
+      <country code="SR" value="SUR"/>
+      <country code="SS" value="SSD"/>
+      <country code="ST" value="STP"/>
+      <country code="SV" value="SLV"/>
+      <country code="SX" value="SXM"/>
+      <country code="SY" value="SYR"/>
+      <country code="SZ" value="SWZ"/>
+      <country code="TC" value="TCA"/>
+      <country code="TD" value="TCD"/>
+      <country code="TF" value="ATF"/>
+      <country code="TG" value="TGO"/>
+      <country code="TH" value="THA"/>
+      <country code="TJ" value="TJK"/>
+      <country code="TK" value="TKL"/>
+      <country code="TL" value="TLS"/>
+      <country code="TM" value="TKM"/>
+      <country code="TN" value="TUN"/>
+      <country code="TO" value="TON"/>
+      <country code="TR" value="TUR"/>
+      <country code="TT" value="TTO"/>
+      <country code="TV" value="TUV"/>
+      <country code="TW" value="TWN"/>
+      <country code="TZ" value="TZA"/>
+      <country code="UA" value="UKR"/>
+      <country code="UG" value="UGA"/>
+      <country code="UM" value="UMI"/>
+      <country code="US" value="USA"/>
+      <country code="UY" value="URY"/>
+      <country code="UZ" value="UZB"/>
+      <country code="VA" value="VAT"/>
+      <country code="VC" value="VCT"/>
+      <country code="VE" value="VEN"/>
+      <country code="VG" value="VGB"/>
+      <country code="VI" value="VIR"/>
+      <country code="VN" value="VNM"/>
+      <country code="VU" value="VUT"/>
+      <country code="WF" value="WLF"/>
+      <country code="WS" value="WSM"/>
+      <country code="XK" value="XKX"/>
+      <country code="YE" value="YEM"/>
+      <country code="YT" value="MYT"/>
+      <country code="ZA" value="ZAF"/>
+      <country code="ZM" value="ZMB"/>
+      <country code="ZW" value="ZWE"/>
+    </map>
+  </xsl:variable>
+
+  <xsl:variable name="operator-email-map">
+    <map>
+      <entry code="AJ" email="mx.ajimenez@kensalogistics.com"/>
+      <entry code="AMR" email="mx.amartinez@kensalogistics.com"/>
+      <entry code="IZ" email="mx.iramirez@kensalogistics.com"/>
+      <entry code="EV" email="mx.evargas@kensalogistics.com"/>
+      <entry code="JRE" email="mx.jreyes@kensalogistics.com"/>
+      <entry code="MV" email="mx.mvega@kensalogistics.com"/>
+      <entry code="OCE" email="mx.ocervantes@kensalogistics.com"/>
+      <entry code="OC" email="mx.ogonzalez@kensalogistics.com"/>
+      <entry code="ZP" email="mx.zpedraza@kensalogistics.com"/>
+      <entry code="SL" email="mx.slopez@kensalogistics.com"/>
+      <entry code="JM" email="mx.jmellado@kensalogistics.com"/>
+      <entry code="JG" email="mx.jguillen@kensalogistics.com"/>
+      <entry code="JL" email="mx.jcluis@kensalogistics.com"/>
+      <entry code="MJF" email="mx.mjflores@kensalogistics.com"/>
+      <entry code="VA" email="mx.varroyo@kensalogistics.com"/>
+      <entry code="NE" email="mx.nescobar@kensalogistics.com"/>
+      <entry code="VG" email="mx.vgonzalez@kensalogistics.com"/>
+      <entry code="MS" email="mx.msantos@kensalogistics.com"/>
+      <entry code="ATU" email="mx.aaceves@kensalogistics.com"/>
+      <entry code="LGC" email="mx.lguerrero@kensalogistics.com"/>
+      <entry code="YZ" email="mx.yvazquez@kensalogistics.com"/>
+      <entry code="CV" email="mx.cvalenzuela@kensalogistics.com"/>
+      <entry code="CMO" email="mx.cmorales@kensalogistics.com"/>
+      <entry code="GM" email="mx.gmendiola@kensalogistics.com"/>
+      <entry code="LLD" email="mx.llopez@kensalogistics.com"/>
+      <entry code="KM" email="mx.kmendez@kensalogistics.com"/>
+      <entry code="JI" email="mx.jivellez@kensalogistics.com"/>
+      <entry code="BLU" email="mx.blujan@kensalogistics.com"/>
+      <entry code="CR" email="mx.cramos@kensalogistics.com"/>
+      <entry code="DS" email="mx.dsanchez@kensalogistics.com"/>
+      <entry code="JA" email="mx.jargueta@kensalogistics.com"/>
+      <entry code="ML" email="mx.mlopez@kensalogistics.com"/>
+      <entry code="PT" email="mx.ptaboada@kensalogistics.com"/>
+      <entry code="RS" email="mx.rsocarras@kensalogistics.com"/>
+      <entry code="DT" email="mx.dtellez@kensalogistics.com"/>
+      <entry code="AD" email="mx.adiaz@kensalogistics.com"/>
+      <entry code="IL" email="mx.ilopez@kensalogistics.com"/>
+      <entry code="EVE" email="mx.evelasco@kensalogistics.com"/>
+      <entry code="KMA" email="mx.kaguilar@kensalogistics.com"/>
+      <entry code="MMZ" email="mx.mmartinez@kensalogistics.com"/>
+      <entry code="RGP" email="mx.rgoff@kensalogistics.com"/>
+      <entry code="CYN" email="mx.cmendez@kensalogistics.com"/>
+      <entry code="EG" email="mx.ugarcia@kensalogistics.com"/>
+      <entry code="LC" email="mx.lcontreras@kensalogistics.com"/>
+      <entry code="FMH" email="mx.fhernandez@kensalogistics.com"/>
+      <entry code="APZ" email="mx.aperez@kensalogistics.com"/>
+      <entry code="IMZ" email="mx.imarquez@kensalogistics.com"/>
+      <entry code="AI" email="mx.airigoyen@kensalogistics.com"/>
+      <entry code="HB" email="mx.hbernal@kensalogistics.com"/>
+      <entry code="IP" email="mx.ipineda@kensalogistics.com"/>
+      <entry code="YR" email="mx.yrodriguez@kensalogistics.com"/>
+      <entry code="GG" email="mx.ggomez@kensalogistics.com"/>
+      <entry code="ASN" email="mx.asantillan@kensalogistics.com"/>
+      <entry code="VC" email="mx.vcolli@kensalogistics.com"/>
+      <entry code="EI" email="mx.eislas@kensalogistics.com"/>
+      <entry code="VGA" email="mx.vgarcia@kensalogistics.com"/>
+      <entry code="MRZ" email="mx.mramirez@kensalogistics.com"/>
+      <entry code="ATO" email="mx.atrujano@kensalogistics.com"/>
+      <entry code="SR" email="mx.sruiz@kensalogistics.com"/>
+      <entry code="VGZ" email="mx.lgonzalez@kensalogistics.com"/>
+      <entry code="AGA" email="mx.agarcia@kensalogistics.com"/>
+      <entry code="FG" email="mx.fgrimaldo@kensalogistics.com"/>
+      <entry code="FR" email="mx.frodriguez@kensalogistics.com"/>
+      <entry code="ID" email="mx.idegante@kensalogistics.com"/>
+      <entry code="JC" email="mx.jcruz@kensalogistics.com"/>
+      <entry code="PE" email="mx.pestrada@kensalogistics.com"/>
+      <entry code="YPG" email="mx.ypuga@kensalogistics.com"/>
+    </map>
+  </xsl:variable>
+
+  <xsl:template name="charge-description">
+    <xsl:param name="chargeCode"/>
+    <xsl:param name="glAccount"/>
+    <xsl:param name="originalDescription"/>
+    <xsl:choose>
+      <xsl:when test="$chargeCode = 'CSCF'">
+        <xsl:value-of select="'Tarifa de Consultoría de Seguro de Contendores'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'ISPS'">
+        <xsl:value-of select="'Código Int. para la Protección de los Buques y de las Instalaciones Portuarias'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'ADM FEE'">
+        <xsl:value-of select="'Cargo por Administración'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'COMN'">
+        <xsl:value-of select="'Comisones'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'ADPOST'">
+        <xsl:value-of select="'Gastos de Envío y Mensajeria'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'AMS'">
+        <xsl:value-of select="'AMS'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'CCLR'">
+        <xsl:value-of select="'Despacho Aduanal'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'CONTP'">
+        <xsl:value-of select="'Contenedor Premium'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'CRSBRD'">
+        <xsl:value-of select="'Cruce de Frontera'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'CTDY'">
+        <xsl:value-of select="'Custodia'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'DADF'">
+        <xsl:value-of select="'Cargo por Documentacion de Aerolínea en Origen'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'DBILL'">
+        <xsl:value-of select="'Liberación de BL en destino'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'DCART'">
+        <xsl:value-of select="'Entrega en Destino'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'DCDEM'">
+        <xsl:value-of select="translate($originalDescription, '&#xA;', ' ')"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'DCDET'">
+        <xsl:value-of select="'Detención de Unidad en Destino'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'DDOC'">
+        <xsl:value-of select="'Cargo por Documentación en Destino'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'DESC'">
+        <xsl:value-of select="'Desconsolidación'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'DFUMI'">
+        <xsl:value-of select="'Cargo por Fumigación en Destino'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'DHAND'">
+        <xsl:value-of select="'Manejo en Destino'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'DINSP'">
+        <xsl:value-of select="'Inspección de Aduana en Destino'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'DNOTE'">
+        <xsl:value-of select="$originalDescription"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'DREL'">
+        <xsl:value-of select="'Cargo por Liberación en Destino'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'DSTOR'">
+        <xsl:value-of select="'Almacenaje en Destino'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'DTHC'">
+        <xsl:value-of select="'Cargos por Manejor en Terminal de Destino'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'ECUF'">
+        <xsl:value-of select="'Cargo Aduanal EDI'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'EUR1'">
+        <xsl:value-of select="'EUR1'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'FNBKCHG'">
+        <xsl:value-of select="'Cargos de bancos'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'FREETEXT'">
+        <xsl:value-of select="'Texto libre'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'FRTA'">
+        <xsl:value-of select="'Flete Internacional Aéreo'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'FRTL'">
+        <xsl:value-of select="'Flete Internacional Terrestre'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'FRTO'">
+        <xsl:value-of select="translate($originalDescription, '&#xA;', ' ')"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'FSC'">
+        <xsl:value-of select="'Cargo por Combustible'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'GRI'">
+        <xsl:value-of select="'Incremento General de Tarifa'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'HAZFEE'">
+        <xsl:value-of select="'Cargo por Carga Peligrosa'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'IMO'">
+        <xsl:value-of select="'IMO 2020.'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'INBI'">
+        <xsl:value-of select="'Cargo por INBOND'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'INSUR'">
+        <xsl:value-of select="'Cargo por Consultoria de Seguro'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'MANEV'">
+        <xsl:value-of select="'Maniobras'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'OAWB'">
+        <xsl:value-of select="'Corte de Guía Aéreo'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'OBILL'">
+        <xsl:value-of select="'Emisión de BL en Origen'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'OCART'">
+        <xsl:value-of select="'Recolección en origen'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'OCDEM'">
+        <xsl:value-of select="'Demoras de Contenedor en origen'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'OCDET'">
+        <xsl:value-of select="'Detención de Unidad en Origen'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'ODOC'">
+        <xsl:value-of select="'Cargo por Documentación en Origen'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'OFUMI'">
+        <xsl:value-of select="'Fumigación en Origen'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'OHAND'">
+        <xsl:value-of select="'Manejo en Origen'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'OINSP'">
+        <xsl:value-of select="'Inspección en Aduana en Origen'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'ONOTE'">
+        <xsl:value-of select="$originalDescription"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'OSOLAS'">
+        <xsl:value-of select="'Cargo por pesaje VGM SOLAS'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'OSTOR'">
+        <xsl:value-of select="'Almacenaje en Origen'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'OSTUF'">
+        <xsl:value-of select="'Consolidación'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'OTHC'">
+        <xsl:value-of select="'Cargo por Manejo en Terminal de Origen'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'PS'">
+        <xsl:value-of select="'Rebate'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'PTRFEE'">
+        <xsl:value-of select="'Cargo por Transferencia de Puerto'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'FRTMX'">
+        <xsl:value-of select="'Flete Terrestre Local'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'FRTM'">
+        <xsl:value-of select="'Servicios de Fletamento'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'FRTCON'">
+        <xsl:value-of select="'Flete Terrestre Nacional Consolidado'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'FRTAN'">
+        <xsl:value-of select="'Flete Aéreo Nacional'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'FRTON'">
+        <xsl:value-of select="'Flete Marítimo Nacional'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'SDAL'">
+        <xsl:value-of select="'Servicios de Administración Logistica'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'ANTIC'">
+        <xsl:value-of select="'Anticipo de Servicios Logisticos'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'MEDY'">
+        <xsl:value-of select="$originalDescription"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'MSAL'">
+        <xsl:value-of select="$originalDescription"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'NCDEV'">
+        <xsl:value-of select="'Devoluciones, descuentos o bonificaciones'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'PCON'">
+        <xsl:value-of select="'Acondicionamiento de Empaque'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'TONU'">
+        <xsl:value-of select="'Flete en Falso'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'COMIF'">
+        <xsl:value-of select="'Servicios de Coordinación Logística'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'INTM'">
+        <xsl:value-of select="'Coordinación de Logística Intermodal'"/>
+      </xsl:when>
+      <xsl:when test="$chargeCode = 'REL'">
+        <xsl:value-of select="'888888'"/>
+      </xsl:when>
+      <xsl:when test="$glAccount = '630.01.000'">
+        <xsl:value-of select="'Intereses'"/>
+      </xsl:when>
+      <xsl:when test="$glAccount = '710.01.002'">
+        <xsl:value-of select="'Otros ingresos'"/>
+      </xsl:when>
+      <xsl:when test="$glAccount = '401.03.000'">
+        <xsl:value-of select="$originalDescription"/>
+      </xsl:when>
+      <xsl:when test="$glAccount = '425.01.000'">
+        <xsl:value-of select="$originalDescription"/>
+      </xsl:when>
+      <xsl:when test="$glAccount = '401.04.000'">
+        <xsl:value-of select="$originalDescription"/>
+      </xsl:when>
+      <xsl:when test="$glAccount = '425.04.000'">
+        <xsl:value-of select="'Devoluciones, descuentos o bonificaciones'"/>
+      </xsl:when>
+    </xsl:choose>
+  </xsl:template>
 
   <xsl:template match="/">
     <a:Comprobante version="2.0">
@@ -114,761 +675,8 @@
       <xsl:variable name="paisCode"
         select="//w:TransactionInfo/w:OrganizationAddress/w:Country/w:Code"/>
 
-      <xsl:variable name="pais">
-        <xsl:choose>
-          <xsl:when test="$paisCode = 'AD'">
-            <xsl:value-of select="'AND'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'AE'">
-            <xsl:value-of select="'ARE'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'AF'">
-            <xsl:value-of select="'AFG'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'AG'">
-            <xsl:value-of select="'ATG'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'AI'">
-            <xsl:value-of select="'AIA'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'AL'">
-            <xsl:value-of select="'ALB'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'AM'">
-            <xsl:value-of select="'ARM'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'AO'">
-            <xsl:value-of select="'AGO'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'AQ'">
-            <xsl:value-of select="'ATA'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'AR'">
-            <xsl:value-of select="'ARG'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'AS'">
-            <xsl:value-of select="'ASM'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'AT'">
-            <xsl:value-of select="'AUT'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'AU'">
-            <xsl:value-of select="'AUS'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'AW'">
-            <xsl:value-of select="'ABW'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'AX'">
-            <xsl:value-of select="'ALA'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'AZ'">
-            <xsl:value-of select="'AZE'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'BA'">
-            <xsl:value-of select="'BIH'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'BB'">
-            <xsl:value-of select="'BRB'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'BD'">
-            <xsl:value-of select="'BGD'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'BE'">
-            <xsl:value-of select="'BEL'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'BF'">
-            <xsl:value-of select="'BFA'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'BG'">
-            <xsl:value-of select="'BGR'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'BH'">
-            <xsl:value-of select="'BHR'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'BI'">
-            <xsl:value-of select="'BDI'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'BJ'">
-            <xsl:value-of select="'BEN'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'BL'">
-            <xsl:value-of select="'BLM'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'BM'">
-            <xsl:value-of select="'BMU'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'BN'">
-            <xsl:value-of select="'BRN'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'BO'">
-            <xsl:value-of select="'BOL'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'BQ'">
-            <xsl:value-of select="'BES'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'BR'">
-            <xsl:value-of select="'BRA'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'BS'">
-            <xsl:value-of select="'BHS'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'BT'">
-            <xsl:value-of select="'BTN'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'BV'">
-            <xsl:value-of select="'BVT'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'BW'">
-            <xsl:value-of select="'BWA'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'BY'">
-            <xsl:value-of select="'BLR'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'BZ'">
-            <xsl:value-of select="'BLZ'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'CA'">
-            <xsl:value-of select="'CAN'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'CC'">
-            <xsl:value-of select="'CCK'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'CD'">
-            <xsl:value-of select="'COD'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'CF'">
-            <xsl:value-of select="'CAF'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'CG'">
-            <xsl:value-of select="'COG'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'CH'">
-            <xsl:value-of select="'CHE'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'CI'">
-            <xsl:value-of select="'CIV'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'CK'">
-            <xsl:value-of select="'COK'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'CL'">
-            <xsl:value-of select="'CHL'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'CM'">
-            <xsl:value-of select="'CMR'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'CN'">
-            <xsl:value-of select="'CHN'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'CO'">
-            <xsl:value-of select="'COL'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'CR'">
-            <xsl:value-of select="'CRI'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'CU'">
-            <xsl:value-of select="'CUB'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'CV'">
-            <xsl:value-of select="'CPV'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'CW'">
-            <xsl:value-of select="'CUW'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'CX'">
-            <xsl:value-of select="'CXR'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'CY'">
-            <xsl:value-of select="'CYP'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'CZ'">
-            <xsl:value-of select="'CZE'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'DE'">
-            <xsl:value-of select="'DEU'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'DJ'">
-            <xsl:value-of select="'DJI'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'DK'">
-            <xsl:value-of select="'DNK'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'DM'">
-            <xsl:value-of select="'DMA'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'DO'">
-            <xsl:value-of select="'DOM'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'DZ'">
-            <xsl:value-of select="'DZA'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'EC'">
-            <xsl:value-of select="'ECU'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'EE'">
-            <xsl:value-of select="'EST'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'EG'">
-            <xsl:value-of select="'EGY'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'EH'">
-            <xsl:value-of select="'ESH'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'ER'">
-            <xsl:value-of select="'ERI'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'ES'">
-            <xsl:value-of select="'ESP'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'ET'">
-            <xsl:value-of select="'ETH'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'FI'">
-            <xsl:value-of select="'FIN'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'FJ'">
-            <xsl:value-of select="'FJI'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'FK'">
-            <xsl:value-of select="'FLK'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'FM'">
-            <xsl:value-of select="'FSM'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'FO'">
-            <xsl:value-of select="'FRO'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'FR'">
-            <xsl:value-of select="'FRA'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'GA'">
-            <xsl:value-of select="'GAB'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'GB'">
-            <xsl:value-of select="'GBR'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'GD'">
-            <xsl:value-of select="'GRD'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'GE'">
-            <xsl:value-of select="'GEO'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'GF'">
-            <xsl:value-of select="'GUF'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'GG'">
-            <xsl:value-of select="'GGY'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'GH'">
-            <xsl:value-of select="'GHA'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'GI'">
-            <xsl:value-of select="'GIB'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'GL'">
-            <xsl:value-of select="'GRL'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'GM'">
-            <xsl:value-of select="'GMB'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'GN'">
-            <xsl:value-of select="'GIN'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'GP'">
-            <xsl:value-of select="'GLP'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'GQ'">
-            <xsl:value-of select="'GNQ'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'GR'">
-            <xsl:value-of select="'GRC'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'GS'">
-            <xsl:value-of select="'SGS'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'GT'">
-            <xsl:value-of select="'GTM'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'GU'">
-            <xsl:value-of select="'GUM'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'GW'">
-            <xsl:value-of select="'GNB'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'GY'">
-            <xsl:value-of select="'GUY'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'HK'">
-            <xsl:value-of select="'HKG'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'HM'">
-            <xsl:value-of select="'HMD'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'HN'">
-            <xsl:value-of select="'HND'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'HR'">
-            <xsl:value-of select="'HRV'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'HT'">
-            <xsl:value-of select="'HTI'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'HU'">
-            <xsl:value-of select="'HUN'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'ID'">
-            <xsl:value-of select="'IDN'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'IE'">
-            <xsl:value-of select="'IRL'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'IL'">
-            <xsl:value-of select="'ISR'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'IM'">
-            <xsl:value-of select="'IMN'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'IN'">
-            <xsl:value-of select="'IND'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'IO'">
-            <xsl:value-of select="'IOT'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'IQ'">
-            <xsl:value-of select="'IRQ'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'IR'">
-            <xsl:value-of select="'IRN'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'IS'">
-            <xsl:value-of select="'ISL'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'IT'">
-            <xsl:value-of select="'ITA'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'JE'">
-            <xsl:value-of select="'JEY'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'JM'">
-            <xsl:value-of select="'JAM'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'JO'">
-            <xsl:value-of select="'JOR'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'JP'">
-            <xsl:value-of select="'JPN'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'KE'">
-            <xsl:value-of select="'KEN'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'KG'">
-            <xsl:value-of select="'KGZ'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'KH'">
-            <xsl:value-of select="'KHM'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'KI'">
-            <xsl:value-of select="'KIR'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'KM'">
-            <xsl:value-of select="'COM'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'KN'">
-            <xsl:value-of select="'KNA'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'KP'">
-            <xsl:value-of select="'PRK'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'KR'">
-            <xsl:value-of select="'KOR'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'KW'">
-            <xsl:value-of select="'KWT'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'KY'">
-            <xsl:value-of select="'CYM'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'KZ'">
-            <xsl:value-of select="'KAZ'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'LA'">
-            <xsl:value-of select="'LAO'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'LB'">
-            <xsl:value-of select="'LBN'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'LC'">
-            <xsl:value-of select="'LCA'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'LI'">
-            <xsl:value-of select="'LIE'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'LK'">
-            <xsl:value-of select="'LKA'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'LR'">
-            <xsl:value-of select="'LBR'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'LS'">
-            <xsl:value-of select="'LSO'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'LT'">
-            <xsl:value-of select="'LTU'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'LU'">
-            <xsl:value-of select="'LUX'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'LV'">
-            <xsl:value-of select="'LVA'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'LY'">
-            <xsl:value-of select="'LBY'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'MA'">
-            <xsl:value-of select="'MAR'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'MC'">
-            <xsl:value-of select="'MCO'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'MD'">
-            <xsl:value-of select="'MDA'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'ME'">
-            <xsl:value-of select="'MNE'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'MF'">
-            <xsl:value-of select="'MAF'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'MG'">
-            <xsl:value-of select="'MDG'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'MH'">
-            <xsl:value-of select="'MHL'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'MK'">
-            <xsl:value-of select="'MKD'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'ML'">
-            <xsl:value-of select="'MLI'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'MM'">
-            <xsl:value-of select="'MMR'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'MN'">
-            <xsl:value-of select="'MNG'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'MO'">
-            <xsl:value-of select="'MAC'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'MP'">
-            <xsl:value-of select="'MNP'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'MQ'">
-            <xsl:value-of select="'MTQ'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'MR'">
-            <xsl:value-of select="'MRT'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'MS'">
-            <xsl:value-of select="'MSR'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'MT'">
-            <xsl:value-of select="'MLT'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'MU'">
-            <xsl:value-of select="'MUS'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'MV'">
-            <xsl:value-of select="'MDV'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'MW'">
-            <xsl:value-of select="'MWI'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'MX'">
-            <xsl:value-of select="'MEX'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'MY'">
-            <xsl:value-of select="'MYS'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'MZ'">
-            <xsl:value-of select="'MOZ'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'NA'">
-            <xsl:value-of select="'NAM'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'NC'">
-            <xsl:value-of select="'NCL'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'NE'">
-            <xsl:value-of select="'NER'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'NF'">
-            <xsl:value-of select="'NFK'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'NG'">
-            <xsl:value-of select="'NGA'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'NI'">
-            <xsl:value-of select="'NIC'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'NL'">
-            <xsl:value-of select="'NLD'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'NO'">
-            <xsl:value-of select="'NOR'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'NP'">
-            <xsl:value-of select="'NPL'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'NR'">
-            <xsl:value-of select="'NRU'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'NU'">
-            <xsl:value-of select="'NIU'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'NZ'">
-            <xsl:value-of select="'NZL'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'OM'">
-            <xsl:value-of select="'OMN'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'PA'">
-            <xsl:value-of select="'PAN'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'PE'">
-            <xsl:value-of select="'PER'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'PF'">
-            <xsl:value-of select="'PYF'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'PG'">
-            <xsl:value-of select="'PNG'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'PH'">
-            <xsl:value-of select="'PHL'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'PK'">
-            <xsl:value-of select="'PAK'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'PL'">
-            <xsl:value-of select="'POL'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'PM'">
-            <xsl:value-of select="'SPM'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'PN'">
-            <xsl:value-of select="'PCN'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'PR'">
-            <xsl:value-of select="'PRI'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'PS'">
-            <xsl:value-of select="'PSE'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'PT'">
-            <xsl:value-of select="'PRT'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'PW'">
-            <xsl:value-of select="'PLW'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'PY'">
-            <xsl:value-of select="'PRY'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'QA'">
-            <xsl:value-of select="'QAT'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'RE'">
-            <xsl:value-of select="'REU'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'RO'">
-            <xsl:value-of select="'ROU'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'RS'">
-            <xsl:value-of select="'SRB'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'RU'">
-            <xsl:value-of select="'RUS'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'RW'">
-            <xsl:value-of select="'RWA'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'SA'">
-            <xsl:value-of select="'SAU'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'SB'">
-            <xsl:value-of select="'SLB'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'SC'">
-            <xsl:value-of select="'SYC'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'SD'">
-            <xsl:value-of select="'SDN'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'SE'">
-            <xsl:value-of select="'SWE'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'SG'">
-            <xsl:value-of select="'SGP'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'SH'">
-            <xsl:value-of select="'SHN'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'SI'">
-            <xsl:value-of select="'SVN'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'SJ'">
-            <xsl:value-of select="'SJM'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'SK'">
-            <xsl:value-of select="'SVK'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'SL'">
-            <xsl:value-of select="'SLE'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'SM'">
-            <xsl:value-of select="'SMR'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'SN'">
-            <xsl:value-of select="'SEN'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'SO'">
-            <xsl:value-of select="'SOM'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'SR'">
-            <xsl:value-of select="'SUR'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'SS'">
-            <xsl:value-of select="'SSD'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'ST'">
-            <xsl:value-of select="'STP'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'SV'">
-            <xsl:value-of select="'SLV'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'SX'">
-            <xsl:value-of select="'SXM'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'SY'">
-            <xsl:value-of select="'SYR'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'SZ'">
-            <xsl:value-of select="'SWZ'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'TC'">
-            <xsl:value-of select="'TCA'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'TD'">
-            <xsl:value-of select="'TCD'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'TF'">
-            <xsl:value-of select="'ATF'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'TG'">
-            <xsl:value-of select="'TGO'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'TH'">
-            <xsl:value-of select="'THA'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'TJ'">
-            <xsl:value-of select="'TJK'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'TK'">
-            <xsl:value-of select="'TKL'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'TL'">
-            <xsl:value-of select="'TLS'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'TM'">
-            <xsl:value-of select="'TKM'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'TN'">
-            <xsl:value-of select="'TUN'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'TO'">
-            <xsl:value-of select="'TON'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'TR'">
-            <xsl:value-of select="'TUR'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'TT'">
-            <xsl:value-of select="'TTO'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'TV'">
-            <xsl:value-of select="'TUV'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'TW'">
-            <xsl:value-of select="'TWN'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'TZ'">
-            <xsl:value-of select="'TZA'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'UA'">
-            <xsl:value-of select="'UKR'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'UG'">
-            <xsl:value-of select="'UGA'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'UM'">
-            <xsl:value-of select="'UMI'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'US'">
-            <xsl:value-of select="'USA'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'UY'">
-            <xsl:value-of select="'URY'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'UZ'">
-            <xsl:value-of select="'UZB'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'VA'">
-            <xsl:value-of select="'VAT'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'VC'">
-            <xsl:value-of select="'VCT'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'VE'">
-            <xsl:value-of select="'VEN'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'VG'">
-            <xsl:value-of select="'VGB'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'VI'">
-            <xsl:value-of select="'VIR'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'VN'">
-            <xsl:value-of select="'VNM'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'VU'">
-            <xsl:value-of select="'VUT'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'WF'">
-            <xsl:value-of select="'WLF'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'WS'">
-            <xsl:value-of select="'WSM'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'XK'">
-            <xsl:value-of select="'XKX'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'YE'">
-            <xsl:value-of select="'YEM'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'YT'">
-            <xsl:value-of select="'MYT'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'ZA'">
-            <xsl:value-of select="'ZAF'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'ZM'">
-            <xsl:value-of select="'ZMB'"/>
-          </xsl:when>
-          <xsl:when test="$paisCode = 'ZW'">
-            <xsl:value-of select="'ZWE'"/>
-          </xsl:when>
-
-        </xsl:choose>
-      </xsl:variable>
+      <xsl:variable name="pais"
+        select="string(exsl:node-set($country-code-map)/map/country[@code=$paisCode]/@value)"/>
 
       <xsl:variable name="rfc">
         <xsl:choose>
@@ -1349,211 +1157,12 @@
           <xsl:variable name="Shipment" select="//w:Job/w:Key"/>
 
           <!-- Email segun operadores  -->
+          <xsl:variable name="correoLookup"
+            select="string(exsl:node-set($operator-email-map)/map/entry[@code=$operadorCode]/@email)"/>
           <xsl:variable name="correo">
             <xsl:choose>
-              <xsl:when test="$operadorCode = 'AJ'">
-                <xsl:value-of select="'mx.ajimenez@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'AMR'">
-                <xsl:value-of select="'mx.amartinez@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'IZ'">
-                <xsl:value-of select="'mx.iramirez@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'EV'">
-                <xsl:value-of select="'mx.evargas@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'JRE'">
-                <xsl:value-of select="'mx.jreyes@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'MV'">
-                <xsl:value-of select="'mx.mvega@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'OCE'">
-                <xsl:value-of select="'mx.ocervantes@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'OC'">
-                <xsl:value-of select="'mx.ogonzalez@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'ZP'">
-                <xsl:value-of select="'mx.zpedraza@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'SL'">
-                <xsl:value-of select="'mx.slopez@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'JM'">
-                <xsl:value-of select="'mx.jmellado@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'JG'">
-                <xsl:value-of select="'mx.jguillen@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'JL'">
-                <xsl:value-of select="'mx.jcluis@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'MJF'">
-                <xsl:value-of select="'mx.mjflores@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'VA'">
-                <xsl:value-of select="'mx.varroyo@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'NE'">
-                <xsl:value-of select="'mx.nescobar@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'VG'">
-                <xsl:value-of select="'mx.vgonzalez@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'MS'">
-                <xsl:value-of select="'mx.msantos@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'ATU'">
-                <xsl:value-of select="'mx.aaceves@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'LGC'">
-                <xsl:value-of select="'mx.lguerrero@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'YZ'">
-                <xsl:value-of select="'mx.yvazquez@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'CV'">
-                <xsl:value-of select="'mx.cvalenzuela@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'CMO'">
-                <xsl:value-of select="'mx.cmorales@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'GM'">
-                <xsl:value-of select="'mx.gmendiola@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'LLD'">
-                <xsl:value-of select="'mx.llopez@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'KM'">
-                <xsl:value-of select="'mx.kmendez@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'JI'">
-                <xsl:value-of select="'mx.jivellez@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'BLU'">
-                <xsl:value-of select="'mx.blujan@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'CR'">
-                <xsl:value-of select="'mx.cramos@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'DS'">
-                <xsl:value-of select="'mx.dsanchez@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'JA'">
-                <xsl:value-of select="'mx.jargueta@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'ML'">
-                <xsl:value-of select="'mx.mlopez@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'PT'">
-                <xsl:value-of select="'mx.ptaboada@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'RS'">
-                <xsl:value-of select="'mx.rsocarras@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'DT'">
-                <xsl:value-of select="'mx.dtellez@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'AD'">
-                <xsl:value-of select="'mx.adiaz@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'IL'">
-                <xsl:value-of select="'mx.ilopez@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'EVE'">
-                <xsl:value-of select="'mx.evelasco@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'KMA'">
-                <xsl:value-of select="'mx.kaguilar@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'MMZ'">
-                <xsl:value-of select="'mx.mmartinez@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'RGP'">
-                <xsl:value-of select="'mx.rgoff@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'CYN'">
-                <xsl:value-of select="'mx.cmendez@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'EG'">
-                <xsl:value-of select="'mx.ugarcia@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'LC'">
-                <xsl:value-of select="'mx.lcontreras@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'FMH'">
-                <xsl:value-of select="'mx.fhernandez@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'APZ'">
-                <xsl:value-of select="'mx.aperez@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'IMZ'">
-                <xsl:value-of select="'mx.imarquez@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'AI'">
-                <xsl:value-of select="'mx.airigoyen@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'APZ'">
-                <xsl:value-of select="'mx.aperez@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'HB'">
-                <xsl:value-of select="'mx.hbernal@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'IP'">
-                <xsl:value-of select="'mx.ipineda@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'YR'">
-                <xsl:value-of select="'mx.yrodriguez@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'GG'">
-                <xsl:value-of select="'mx.ggomez@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'ASN'">
-                <xsl:value-of select="'mx.asantillan@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'VC'">
-                <xsl:value-of select="'mx.vcolli@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'EI'">
-                <xsl:value-of select="'mx.eislas@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'VGA'">
-                <xsl:value-of select="'mx.vgarcia@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'MRZ'">
-                <xsl:value-of select="'mx.mramirez@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'ATO'">
-                <xsl:value-of select="'mx.atrujano@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'SR'">
-                <xsl:value-of select="'mx.sruiz@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'VGZ'">
-                <xsl:value-of select="'mx.lgonzalez@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'AGA'">
-                <xsl:value-of select="'mx.agarcia@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'FG'">
-                <xsl:value-of select="'mx.fgrimaldo@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'FR'">
-                <xsl:value-of select="'mx.frodriguez@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'ID'">
-                <xsl:value-of select="'mx.idegante@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'JC'">
-                <xsl:value-of select="'mx.jcruz@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'PE'">
-                <xsl:value-of select="'mx.pestrada@kensalogistics.com'"/>
-              </xsl:when>
-              <xsl:when test="$operadorCode = 'YPG'">
-                <xsl:value-of select="'mx.ypuga@kensalogistics.com'"/>
+              <xsl:when test="string-length($correoLookup) &gt; 0">
+                <xsl:value-of select="$correoLookup"/>
               </xsl:when>
               <xsl:otherwise>
                 <xsl:value-of select="'mx.dbaruch@kensalogistics.com'"/>
@@ -1593,8 +1202,9 @@
         <xsl:when test="contains(concat($ShipmentTypeBCN, $ContainerModeBCN), 'BCN')">
           <Conceptos>
 
+            <!-- Recorro cada cargo único identificado por la combinación de código e impuesto -->
             <xsl:for-each
-              select="//w:PostingJournalCollection/w:PostingJournal[generate-id() = generate-id(key('ChargeCode', w:ChargeCode/w:Code)[1])]">
+              select="//w:PostingJournalCollection/w:PostingJournal[generate-id() = generate-id(key('ChargeCode', concat(w:ChargeCode/w:Code, '|', w:VATTaxID/w:TaxCode))[1])]">
 
               <xsl:sort select="w:Job/w:Key" order="descending"/>
 
@@ -1610,23 +1220,27 @@
 
                 <Concepto>
 
+                  <!-- Obtengo el código de impuesto para construir la llave compuesta del cargo -->
+                  <xsl:variable name="TaxCode" select="w:VATTaxID/w:TaxCode"/>
+
+                  <!-- Construyo la llave del cargo combinando código e impuesto -->
+                  <xsl:variable name="ChargeCodeTaxKey"
+                    select="concat($ChargeCodeCode, '|', $TaxCode)"/>
+
+                  <!-- Acumulo el importe total de los cargos que comparten la llave compuesta -->
                   <xsl:variable name="codeTotal">
-                    <xsl:value-of select="sum(key('ChargeCode', w:ChargeCode/w:Code/w:OSAmount))"/>
+                    <xsl:value-of select="sum(key('ChargeCode', $ChargeCodeTaxKey)/w:OSAmount)"/>
                   </xsl:variable>
 
                   <xsl:variable name="job" select="w:Job/w:Key"/>
 
                   <xsl:variable name="TaxRate" select="w:VATTaxID/w:TaxRate"/>
 
-                  <xsl:variable name="TaxCode" select="w:VATTaxID/w:TaxCode"/>
-
                   <xsl:variable name="origin"
                     select="concat(//w:ShipmentCollection/w:Shipment[w:DataContext/w:DataSourceCollection/w:DataSource[w:Type = 'ForwardingShipment']/w:Key = $job]/w:PortOfLoading/w:Code, ' / ', //w:ShipmentCollection/w:Shipment[w:DataContext/w:DataSourceCollection/w:DataSource[w:Type = 'ForwardingShipment']/w:Key = $job]/w:PortOfLoading/w:Name)"/>
 
                   <xsl:variable name="destination"
                     select="concat(//w:ShipmentCollection/w:Shipment[w:DataContext/w:DataSourceCollection/w:DataSource[w:Type = 'ForwardingShipment']/w:Key = $job]/w:PortOfDischarge/w:Code, ' / ', //w:ShipmentCollection/w:Shipment[w:DataContext/w:DataSourceCollection/w:DataSource[w:Type = 'ForwardingShipment']/w:Key = $job]/w:PortOfDischarge/w:Name)"/>
-
-                  <xsl:variable name="TaxCode" select="w:VATTaxID/w:TaxCode"/>
 
                   <xsl:variable name="GLAccount" select="w:GLAccount/w:AccountCode"/>
 
@@ -1851,248 +1465,30 @@
                   </xsl:variable>
 
                   <xsl:variable name="Desc">
-                    <xsl:choose>
-                      <xsl:when test="$ChargeCodeCode = 'CSCF'">
-                        <xsl:value-of select="'Tarifa de Consultoría de Seguro de Contendores'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'ISPS'">
-                        <xsl:value-of
-                          select="'Código Int. para la Protección de los Buques y de las Instalaciones Portuarias'"
-                        />
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'ADM FEE'">
-                        <xsl:value-of select="'Cargo por Administración'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'COMN'">
-                        <xsl:value-of select="'Comisones'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'ADPOST'">
-                        <xsl:value-of select="'Gastos de Envío y Mensajeria'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'AMS'">
-                        <xsl:value-of select="'AMS'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'CCLR'">
-                        <xsl:value-of select="'Despacho Aduanal'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'CONTP'">
-                        <xsl:value-of select="'Contenedor Premium'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'CRSBRD'">
-                        <xsl:value-of select="'Cruce de Frontera'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'CTDY'">
-                        <xsl:value-of select="'Custodia'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'DADF'">
-                        <xsl:value-of select="'Cargo por Documentacion de Aerolínea en Origen'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'DBILL'">
-                        <xsl:value-of select="'Liberación de BL en destino'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'DCART'">
-                        <xsl:value-of select="'Entrega en Destino'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'DCDEM'">
-                        <xsl:value-of select="translate(w:Description, '&#xA;', ' ')"/>
-                        <!--<xsl:value-of select="'Demoras de Contenedor en Destino'"/>-->
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'DCDET'">
-                        <xsl:value-of select="'Detención de Unidad en Destino'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'DDOC'">
-                        <xsl:value-of select="'Cargo por Documentación en Destino'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'DESC'">
-                        <xsl:value-of select="'Desconsolidación'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'DFUMI'">
-                        <xsl:value-of select="'Cargo por Fumigación en Destino'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'DHAND'">
-                        <xsl:value-of select="'Manejo en Destino'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'DINSP'">
-                        <xsl:value-of select="'Inspección de Aduana en Destino'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'DNOTE'">
-                        <xsl:value-of select="$descripcionOriginal"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'DREL'">
-                        <xsl:value-of select="'Cargo por Liberación en Destino'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'DSTOR'">
-                        <xsl:value-of select="'Almacenaje en Destino'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'DTHC'">
-                        <xsl:value-of select="'Cargos por Manejor en Terminal de Destino'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'ECUF'">
-                        <xsl:value-of select="'Cargo Aduanal EDI'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'EUR1'">
-                        <xsl:value-of select="'EUR1'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'FNBKCHG'">
-                        <xsl:value-of select="'Cargos de bancos'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'FREETEXT'">
-                        <xsl:value-of select="'Texto libre'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'FRTA'">
-                        <xsl:value-of select="'Flete Internacional Aéreo'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'FRTL'">
-                        <xsl:value-of select="'Flete Internacional Terrestre'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'FRTO'">
-                        <xsl:value-of select="translate(w:Description, '&#xA;', ' ')"/>
-                        <!--<xsl:value-of select="'Flete Internacional Marítimo'"/>-->
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'FSC'">
-                        <xsl:value-of select="'Cargo por Combustible'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'GRI'">
-                        <xsl:value-of select="'Incremento General de Tarifa'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'HAZFEE'">
-                        <xsl:value-of select="'Cargo por Carga Peligrosa'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'IMO'">
-                        <xsl:value-of select="'IMO 2020.'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'INBI'">
-                        <xsl:value-of select="'Cargo por INBOND'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'INSUR'">
-                        <xsl:value-of select="'Cargo por Consultoria de Seguro'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'MANEV'">
-                        <xsl:value-of select="'Maniobras'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'OAWB'">
-                        <xsl:value-of select="'Corte de Guía Aéreo'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'OBILL'">
-                        <xsl:value-of select="'Emisión de BL en Origen'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'OCART'">
-                        <xsl:value-of select="'Recolección en origen'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'OCDEM'">
-                        <xsl:value-of select="'Demoras de Contenedor en origen'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'OCDET'">
-                        <xsl:value-of select="'Detención de Unidad en Origen'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'ODOC'">
-                        <xsl:value-of select="'Cargo por Documentación en Origen'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'OFUMI'">
-                        <xsl:value-of select="'Fumigación en Origen'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'OHAND'">
-                        <xsl:value-of select="'Manejo en Origen'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'OINSP'">
-                        <xsl:value-of select="'Inspección en Aduana en Origen'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'ONOTE'">
-                        <xsl:value-of select="$descripcionOriginal"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'OSOLAS'">
-                        <xsl:value-of select="'Cargo por pesaje VGM SOLAS'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'OSTOR'">
-                        <xsl:value-of select="'Almacenaje en Origen'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'OSTUF'">
-                        <xsl:value-of select="'Consolidación'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'OTHC'">
-                        <xsl:value-of select="'Cargo por Manejo en Terminal de Origen'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'PS'">
-                        <xsl:value-of select="'Rebate'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'PTRFEE'">
-                        <xsl:value-of select="'Cargo por Transferencia de Puerto'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'FRTMX'">
-                        <xsl:value-of select="'Flete Terrestre Local'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'FRTM'">
-                        <xsl:value-of select="'Servicios de Fletamento'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'FRTCON'">
-                        <xsl:value-of select="'Flete Terrestre Nacional Consolidado'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'FRTAN'">
-                        <xsl:value-of select="'Flete Aéreo Nacional'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'FRTON'">
-                        <xsl:value-of select="'Flete Marítimo Nacional'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'SDAL'">
-                        <xsl:value-of select="'Servicios de Administración Logistica'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'ANTIC'">
-                        <xsl:value-of select="'Anticipo de Servicios Logisticos'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'MEDY'">
-                        <xsl:value-of select="w:Description"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'NCDEV'">
-                        <xsl:value-of select="'Devoluciones, descuentos o bonificaciones'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'PCON'">
-                        <xsl:value-of select="'Acondicionamiento de Empaque'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'TONU'">
-                        <xsl:value-of select="'Flete en Falso'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'COMIF'">
-                        <xsl:value-of select="'Servicios de Coordinación Logística'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'INTM'">
-                        <xsl:value-of select="'Coordinación de Logística Intermodal'"/>
-                      </xsl:when>
-                      <xsl:when test="$GLAccount = '630.01.000'">
-                        <xsl:value-of select="'Intereses'"/>
-                      </xsl:when>
-                      <xsl:when test="$GLAccount = '710.01.002'">
-                        <xsl:value-of select="'Otros ingresos'"/>
-                      </xsl:when>
-                      <xsl:when test="$GLAccount = '401.03.000'">
-                        <xsl:value-of select="w:Description"/>
-                      </xsl:when>
-                      <xsl:when test="$GLAccount = '425.01.000'">
-                        <xsl:value-of select="w:Description"/>
-                      </xsl:when>
-                      <xsl:when test="$GLAccount = '401.04.000'">
-                        <xsl:value-of select="w:Description"/>
-                      </xsl:when>
-                      <xsl:when test="$GLAccount = '425.04.000'">
-                        <xsl:value-of select="'Devoluciones, descuentos o bonificaciones'"/>
-                      </xsl:when>
-                    </xsl:choose>
+                    <xsl:call-template name="charge-description">
+                      <xsl:with-param name="chargeCode" select="$ChargeCodeCode"/>
+                      <xsl:with-param name="glAccount" select="$GLAccount"/>
+                      <xsl:with-param name="originalDescription" select="$descripcionOriginal"/>
+                    </xsl:call-template>
                   </xsl:variable>
 
+                  <!-- Calcula el importe total del cargo según el signo de los movimientos -->
                   <xsl:variable name="Importe">
                     <xsl:choose>
                       <xsl:when test="w:OSAmount &lt; 0">
                         <xsl:value-of
-                          select="format-number(sum(key('ChargeCode', w:ChargeCode/w:Code)/w:OSAmount) * -1, '#.00')"
+                          select="format-number(sum(key('ChargeCode', $ChargeCodeTaxKey)/w:OSAmount) * -1, '#.00')"
                         />
                       </xsl:when>
                       <xsl:otherwise>
                         <xsl:value-of
-                          select="format-number(sum(key('ChargeCode', w:ChargeCode/w:Code)/w:OSAmount), '#.00')"
+                          select="format-number(sum(key('ChargeCode', $ChargeCodeTaxKey)/w:OSAmount), '#.00')"
                         />
                       </xsl:otherwise>
                     </xsl:choose>
                   </xsl:variable>
 
+                  <!-- Determina el impuesto trasladado acumulado para la llave compuesta -->
                   <xsl:variable name="ImporteImpuesto">
 
                     <!--
@@ -2102,12 +1498,12 @@
                       <xsl:choose>
                       <xsl:when test="w:OSGSTVATAmount &lt; 0">
                         <xsl:value-of
-                          select="format-number(sum(key('ChargeCode', w:ChargeCode/w:Code)/w:OSGSTVATAmount) * -1, '#.00')"
+                          select="format-number(sum(key('ChargeCode', $ChargeCodeTaxKey)/w:OSGSTVATAmount) * -1, '#.00')"
                         />
                       </xsl:when>
                       <xsl:otherwise>
                         <xsl:value-of
-                          select="format-number(sum(key('ChargeCode', w:ChargeCode/w:Code)/w:OSGSTVATAmount), '0.00')"
+                          select="format-number(sum(key('ChargeCode', $ChargeCodeTaxKey)/w:OSGSTVATAmount), '0.00')"
                         />
                       </xsl:otherwise>
                     </xsl:choose>-->
@@ -2115,16 +1511,17 @@
                     <xsl:value-of select="format-number($Importe * 0.16, '0.00')"/>
                   </xsl:variable>
 
+                  <!-- Determina la retención acumulada asociada a la llave compuesta del cargo -->
                   <xsl:variable name="ImporteRetencion">
                     <xsl:choose>
                       <xsl:when test="w:OSExtraVATAmount &lt; 0">
                         <xsl:value-of
-                          select="format-number(sum(key('ChargeCode', w:ChargeCode/w:Code)/w:OSExtraVATAmount) * -1, '#.00')"
+                          select="format-number(sum(key('ChargeCode', $ChargeCodeTaxKey)/w:OSExtraVATAmount) * -1, '#.00')"
                         />
                       </xsl:when>
                       <xsl:otherwise>
                         <xsl:value-of
-                          select="format-number(sum(key('ChargeCode', w:ChargeCode/w:Code)/w:OSExtraVATAmount), '0.00')"
+                          select="format-number(sum(key('ChargeCode', $ChargeCodeTaxKey)/w:OSExtraVATAmount), '0.00')"
                         />
                       </xsl:otherwise>
                     </xsl:choose>
@@ -2250,16 +1647,18 @@
                     </xsl:choose>
                   </xsl:attribute>
 
+                  <!-- Calcula el impuesto trasladado absoluto para la llave compuesta actual -->
                   <xsl:variable name="absImpTrans">
                     <xsl:choose>
                       <xsl:when test="w:OSGSTVATAmount &lt; 0">
-                        <xsl:value-of select="sum(key('ChargeCode', w:OSGSTVATAmount)) * -1"/>
+                        <xsl:value-of
+                          select="sum(key('ChargeCode', $ChargeCodeTaxKey)/w:OSGSTVATAmount) * -1"/>
                       </xsl:when>
                       <xsl:when test="not(w:OSGSTVATAmount)">
                         <xsl:value-of select="0"/>
                       </xsl:when>
                       <xsl:otherwise>
-                        <xsl:value-of select="sum(key('ChargeCode', w:OSGSTVATAmount))"/>
+                        <xsl:value-of select="sum(key('ChargeCode', $ChargeCodeTaxKey)/w:OSGSTVATAmount)"/>
                       </xsl:otherwise>
                     </xsl:choose>
                   </xsl:variable>
@@ -2645,6 +2044,7 @@
         </xsl:when>
         <xsl:otherwise>
           <Conceptos>
+            <!-- Recorro cada cargo para calcular importes utilizando la llave compuesta -->
             <xsl:for-each select="//w:PostingJournalCollection/w:PostingJournal">
 
               <xsl:sort select="w:Job/w:Key" order="descending"/>
@@ -2660,15 +2060,21 @@
                 test="$ChargeCodeCode != 'DTA' and $ChargeCodeCode != 'PREVAL' and $ChargeTypeCode != 'CMT'">
 
                 <Concepto>
+                  <!-- Obtengo el código de impuesto para construir la llave compuesta del cargo -->
+                  <xsl:variable name="TaxCode" select="w:VATTaxID/w:TaxCode"/>
+
+                  <!-- Construyo la llave del cargo combinando código e impuesto -->
+                  <xsl:variable name="ChargeCodeTaxKey"
+                    select="concat($ChargeCodeCode, '|', $TaxCode)"/>
+
+                  <!-- Acumulo el importe total de los cargos que comparten la llave compuesta -->
                   <xsl:variable name="codeTotal">
-                    <xsl:value-of select="sum(key('ChargeCode', w:ChargeCode/w:Code/w:OSAmount))"/>
+                    <xsl:value-of select="sum(key('ChargeCode', $ChargeCodeTaxKey)/w:OSAmount)"/>
                   </xsl:variable>
 
                   <xsl:variable name="job" select="w:Job/w:Key"/>
 
                   <xsl:variable name="TaxRate" select="w:VATTaxID/w:TaxRate"/>
-
-                  <xsl:variable name="TaxCode" select="w:VATTaxID/w:TaxCode"/>
 
                   <xsl:variable name="origin"
                     select="concat(//w:ShipmentCollection/w:Shipment[w:DataContext/w:DataSourceCollection/w:DataSource[w:Type = 'ForwardingShipment']/w:Key = $job]/w:PortOfLoading/w:Code, ' / ', //w:ShipmentCollection/w:Shipment[w:DataContext/w:DataSourceCollection/w:DataSource[w:Type = 'ForwardingShipment']/w:Key = $job]/w:PortOfLoading/w:Name)"/>
@@ -2905,237 +2311,14 @@
                   </xsl:variable>
 
                   <xsl:variable name="Desc">
-                    <xsl:choose>
-                      <xsl:when test="$ChargeCodeCode = 'CSCF'">
-                        <xsl:value-of select="'Tarifa de Consultoría de Seguro de Contendores'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'ISPS'">
-                        <xsl:value-of
-                          select="'Código Int. para la Protección de los Buques y de las Instalaciones Portuarias'"
-                        />
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'ADM FEE'">
-                        <xsl:value-of select="'Cargo por Administración'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'COMN'">
-                        <xsl:value-of select="'Comisones'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'ADPOST'">
-                        <xsl:value-of select="'Gastos de Envío y Mensajeria'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'AMS'">
-                        <xsl:value-of select="'AMS'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'CCLR'">
-                        <xsl:value-of select="'Despacho Aduanal'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'CONTP'">
-                        <xsl:value-of select="'Contenedor Premium'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'CRSBRD'">
-                        <xsl:value-of select="'Cruce de Frontera'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'CTDY'">
-                        <xsl:value-of select="'Custodia'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'DADF'">
-                        <xsl:value-of select="'Cargo por Documentacion de Aerolínea en Origen'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'DBILL'">
-                        <xsl:value-of select="'Liberación de BL en destino'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'DCART'">
-                        <xsl:value-of select="'Entrega en Destino'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'DCDEM'">
-                        <xsl:value-of select="translate(w:Description, '&#xA;', ' ')"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'DCDET'">
-                        <xsl:value-of select="'Detención de Unidad en Destino'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'DDOC'">
-                        <xsl:value-of select="'Cargo por Documentación en Destino'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'DESC'">
-                        <xsl:value-of select="'Desconsolidación'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'DFUMI'">
-                        <xsl:value-of select="'Cargo por Fumigación en Destino'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'DHAND'">
-                        <xsl:value-of select="'Manejo en Destino'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'DINSP'">
-                        <xsl:value-of select="'Inspección de Aduana en Destino'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'DNOTE'">
-                        <xsl:value-of select="$descripcionOriginal"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'DREL'">
-                        <xsl:value-of select="'Cargo por Liberación en Destino'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'DSTOR'">
-                        <xsl:value-of select="'Almacenaje en Destino'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'DTHC'">
-                        <xsl:value-of select="'Cargos por Manejor en Terminal de Destino'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'ECUF'">
-                        <xsl:value-of select="'Cargo Aduanal EDI'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'EUR1'">
-                        <xsl:value-of select="'EUR1'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'FNBKCHG'">
-                        <xsl:value-of select="'Cargos de bancos'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'FREETEXT'">
-                        <xsl:value-of select="'Texto libre'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'FRTA'">
-                        <xsl:value-of select="'Flete Internacional Aéreo'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'FRTL'">
-                        <xsl:value-of select="'Flete Internacional Terrestre'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'FRTO'">
-                        <xsl:value-of select="translate(w:Description, '&#xA;', ' ')"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'FSC'">
-                        <xsl:value-of select="'Cargo por Combustible'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'GRI'">
-                        <xsl:value-of select="'Incremento General de Tarifa'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'HAZFEE'">
-                        <xsl:value-of select="'Cargo por Carga Peligrosa'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'IMO'">
-                        <xsl:value-of select="'IMO 2020.'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'INBI'">
-                        <xsl:value-of select="'Cargo por INBOND'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'INSUR'">
-                        <xsl:value-of select="'Cargo por Consultoria de Seguro'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'MANEV'">
-                        <xsl:value-of select="'Maniobras'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'OAWB'">
-                        <xsl:value-of select="'Corte de Guía Aéreo'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'OBILL'">
-                        <xsl:value-of select="'Emisión de BL en Origen'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'OCART'">
-                        <xsl:value-of select="'Recolección en origen'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'OCDEM'">
-                        <xsl:value-of select="'Demoras de Contenedor en origen'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'OCDET'">
-                        <xsl:value-of select="'Detención de Unidad en Origen'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'ODOC'">
-                        <xsl:value-of select="'Cargo por Documentación en Origen'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'OFUMI'">
-                        <xsl:value-of select="'Fumigación en Origen'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'OHAND'">
-                        <xsl:value-of select="'Manejo en Origen'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'OINSP'">
-                        <xsl:value-of select="'Inspección en Aduana en Origen'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'ONOTE'">
-                        <xsl:value-of select="$descripcionOriginal"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'OSOLAS'">
-                        <xsl:value-of select="'Cargo por pesaje VGM SOLAS'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'OSTOR'">
-                        <xsl:value-of select="'Almacenaje en Origen'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'OSTUF'">
-                        <xsl:value-of select="'Consolidación'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'OTHC'">
-                        <xsl:value-of select="'Cargo por Manejo en Terminal de Origen'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'PS'">
-                        <xsl:value-of select="'Rebate'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'PTRFEE'">
-                        <xsl:value-of select="'Cargo por Transferencia de Puerto'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'FRTMX'">
-                        <xsl:value-of select="'Flete Terrestre Local'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'FRTM'">
-                        <xsl:value-of select="'Servicios de Fletamento'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'FRTCON'">
-                        <xsl:value-of select="'Flete Terrestre Nacional Consolidado'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'FRTAN'">
-                        <xsl:value-of select="'Flete Aéreo Nacional'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'FRTON'">
-                        <xsl:value-of select="'Flete Marítimo Nacional'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'SDAL'">
-                        <xsl:value-of select="'Servicios de Administración Logistica'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'ANTIC'">
-                        <xsl:value-of select="'Anticipo de Servicios Logisticos'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'MEDY'">
-                        <xsl:value-of select="w:Description"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'MSAL'">
-                        <xsl:value-of select="w:Description"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'NCDEV'">
-                        <xsl:value-of select="'Devoluciones, descuentos o bonificaciones'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'PCON'">
-                        <xsl:value-of select="'Acondicionamiento de Empaque'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'TONU'">
-                        <xsl:value-of select="'Flete en Falso'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'COMIF'">
-                        <xsl:value-of select="'Servicios de Coordinación Logística'"/>
-                      </xsl:when>
-                      <xsl:when test="$ChargeCodeCode = 'INTM'">
-                        <xsl:value-of select="'Coordinación de Logística Intermodal'"/>
-                      </xsl:when>
-                      <xsl:when test="$GLAccount = '630.01.000'">
-                        <xsl:value-of select="'Intereses'"/>
-                      </xsl:when>
-                      <xsl:when test="$GLAccount = '710.01.002'">
-                        <xsl:value-of select="w:Description"/>
-                      </xsl:when>
-                      <xsl:when test="$GLAccount = '401.03.000'">
-                        <xsl:value-of select="w:Description"/>
-                      </xsl:when>
-                      <xsl:when test="$GLAccount = '425.01.000'">
-                        <xsl:value-of select="w:Description"/>
-                      </xsl:when>
-                      <xsl:when test="$GLAccount = '401.04.000'">
-                        <xsl:value-of select="w:Description"/>
-                      </xsl:when>
-                      <xsl:when test="$GLAccount = '425.01.000'">
-                        <xsl:value-of select="'Devoluciones, descuentos o bonificaciones'"/>
-                      </xsl:when>
-                      <xsl:when test="$GLAccount = '425.04.000'">
-                        <xsl:value-of select="'Devoluciones, descuentos o bonificaciones'"/>
-                      </xsl:when>
-                    </xsl:choose>
+                    <xsl:call-template name="charge-description">
+                      <xsl:with-param name="chargeCode" select="$ChargeCodeCode"/>
+                      <xsl:with-param name="glAccount" select="$GLAccount"/>
+                      <xsl:with-param name="originalDescription" select="$descripcionOriginal"/>
+                    </xsl:call-template>
                   </xsl:variable>
 
+                  <!-- Formatea el importe del cargo individual según su signo -->
                   <xsl:variable name="Importe">
                     <xsl:choose>
                       <xsl:when test="w:OSAmount &lt; 0">
@@ -3147,6 +2330,7 @@
                     </xsl:choose>
                   </xsl:variable>
 
+                  <!-- Determina el impuesto trasladado reportado por el movimiento individual -->
                   <xsl:variable name="ImporteImpuesto">
                     <xsl:choose>
                       <xsl:when test="w:OSGSTVATAmount &lt; 0">
@@ -3158,6 +2342,7 @@
                     </xsl:choose>
                   </xsl:variable>
 
+                  <!-- Determina la retención asociada al movimiento individual -->
                   <xsl:variable name="ImporteRetencion">
                     <xsl:choose>
                       <xsl:when test="w:OSExtraVATAmount &lt; 0">
@@ -3306,6 +2491,7 @@
                     </xsl:choose>
                   </xsl:attribute>
 
+                  <!-- Calcula el impuesto trasladado del cargo individual en términos absolutos -->
                   <xsl:variable name="absImpTrans">
                     <xsl:choose>
                       <xsl:when test="w:OSGSTVATAmount &lt; 0">
