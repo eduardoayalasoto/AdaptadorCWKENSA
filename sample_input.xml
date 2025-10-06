@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<customers>
+    <customer id="C001">
+        <firstName>Juan</firstName>
+        <lastName>Pérez</lastName>
+        <email>JUAN.PEREZ@EXAMPLE.COM</email>
+        <phone>+1-555-0123</phone>
+        <address>
+            <street>Av. Libertador 1234</street>
+            <city>Buenos Aires</city>
+            <zipCode>C1001</zipCode>
+            <country>Argentina</country>
+        </address>
+        <orders>
+            <order id="ORD001" currency="USD">
+                <date>2024-01-15</date>
+                <total>150.75</total>
+                <items>
+                    <item>
+                        <name>Laptop Adapter</name>
+                        <quantity>1</quantity>
+                        <price>89.99</price>
+                        <category>Electronics</category>
+                    </item>
+                    <item>
+                        <name>USB Cable</name>
+                        <quantity>2</quantity>
+                        <price>15.50</price>
+                        <category>Electronics</category>
+                    </item>
+                </items>
+            </order>
+            <order id="ORD002" currency="EUR">
+                <date>2024-02-20</date>
+                <total>75.25</total>
+                <items>
+                    <item>
+                        <name>Power Bank</name>
+                        <quantity>1</quantity>
+                        <price>75.25</price>
+                        <category>Electronics</category>
+                    </item>
+                </items>
+            </order>
+        </orders>
+    </customer>
+    <customer id="C002">
+        <firstName>María</firstName>
+        <lastName>González</lastName>
+        <email>MARIA.GONZALEZ@COMPANY.COM</email>
+        <phone>+34-600-123-456</phone>
+        <address>
+            <street>Calle Mayor 567</street>
+            <city>Madrid</city>
+            <zipCode>28001</zipCode>
+            <country>España</country>
+        </address>
+        <orders>
+            <order id="ORD003">
+                <date>2024-03-10</date>
+                <total>299.99</total>
+                <items>
+                    <item>
+                        <name>Wireless Mouse</name>
+                        <quantity>3</quantity>
+                        <price>29.99</price>
+                        <category>Computer Accessories</category>
+                    </item>
+                    <item>
+                        <name>Keyboard</name>
+                        <quantity>2</quantity>
+                        <price>119.99</price>
+                        <category>Computer Accessories</category>
+                    </item>
+                </items>
+            </order>
+        </orders>
+    </customer>
+    <customer id="C003">
+        <firstName>Carlos</firstName>
+        <lastName>Rodríguez</lastName>
+        <email>carlos.rodriguez@test.org</email>
+        <address>
+            <street>Paseo de la Reforma 890</street>
+            <city>México DF</city>
+            <country>México</country>
+        </address>
+    </customer>
+</customers>
